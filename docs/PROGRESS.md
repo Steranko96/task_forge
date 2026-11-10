@@ -100,3 +100,143 @@ folder. Reviewed the learner task against all nine required sections in
 setup, verified official references, validation and submission guidance;
 no solution or future-ticket dependency. All TSK-001 criteria and handoff
 requirements are met; no remaining work for this ticket.
+
+## TSK-002
+
+### 2026-11-10 — Production verification and learner handoff
+
+- Request: implement TSK-002 only. Read `AGENTS.md`, relevant `PROJECT.md`
+  sections, the full TSK-002 block and dependency/milestone rules in
+  `BACKLOG.md`, `docs/TICKETS.md`, the TSK-001 evidence and
+  `learning/README.md`. Inspected tracked files and existing ignore rules;
+  `find . -name AGENTS.md -not -path './.git/*'` found only the root agreement.
+- Prerequisite: TSK-001 is DONE/READY with an architecture README, recorded
+  acceptance evidence and its existing learner task. No other production
+  ticket was active. TSK-002 remains within Foundations; no preceding
+  milestone exit gate applies. Foundations itself is not complete.
+- Starting state: `git status --short` was empty. TSK-002 was
+  NOT_STARTED/NOT_GENERATED. `git branch --show-current` returned `main`;
+  `git remote -v` showed the credential-free HTTPS origin
+  `https://github.com/Steranko96/task_forge.git` for fetch/push.
+- Existing repository evidence: `git log --reverse --format='%h %s'` returned
+  `ba8fd3a first commit` and `3ad8164 TSK-001: base ticket commit`.
+  `git show --stat --oneline ba8fd3a` showed the initial 17-file skeleton.
+  A read-only GitHub connector `fetch_commit` call for
+  `Steranko96/task_forge`, commit `ba8fd3a`, resolved successfully to
+  [`ba8fd3a743fc8bdc1271dc65b95569a4c0c4ab12`](https://github.com/Steranko96/task_forge/commit/ba8fd3a743fc8bdc1271dc65b95569a4c0c4ab12).
+  Thus Git and GitHub initialization and the initial commit already existed;
+  no reinitialization, replacement repository or new commit was needed.
+- Lifecycle: marked only TSK-002 IN_PROGRESS before implementation. Verified
+  production changes before generating the learner task; marked DONE/READY
+  after the handoff existed. TSK-001 and TSK-003–TSK-046 remain unchanged.
+- Changed files: `.gitignore`, `README.md`, `docs/TICKETS.md`, this log,
+  `learning/tasks/TSK-002/TASK.md` and its empty `workspace/.gitkeep`.
+- Decisions: retain the existing ignore rules and add `env/` plus SQLite
+  `-wal`/`-shm` sidecars. Document repository identity, focused ticket
+  branches/commits, explicit staging, diff review, safe example configuration
+  and response to accidental secret exposure. Do not add configuration
+  variables or install software belonging to future tickets.
+
+Acceptance and requirement evidence:
+
+| Criterion / requirement | Observed evidence | Result |
+| --- | --- | --- |
+| Repository has initial commit | Local root commit assertion and successful GitHub lookup of the same initial commit, as recorded above. | PASS |
+| Ignores local secrets | Root and nested `.env` variants, private keys and `secrets/` paths passed effective ignore checks; safe `.env` examples remained trackable. | PASS |
+| No credentials tracked | Inspected tracked inventory and credential-free remote; pattern scan of all 19 tracked working files and all 19 unique blobs across 2 reachable commits found no credential candidates. No tracked paths matched ignore rules. | PASS, within inspection limits below |
+| Ignore environments and generated assets | Probe matrix covered virtual environments, Python caches/builds, SQLite/journals/sidecars, logs, static collection, uploads and backups; authored static files and migrations remained trackable. | PASS |
+| Document branches/commits | README “Version control and local files” gives branch/commit examples and the review/staging procedure, including authorization boundaries. | PASS |
+
+Checks and environment:
+
+- Shell commands ran from
+  `/Users/tategraham/workspace/tate/taskforge-starter`, on macOS with zsh,
+  Git 2.54.0 and the available `python3` standard library. No packages,
+  services, credentials or database connections were needed.
+- Ran `python3 - <<'PY' ... PY` with `pathlib`, `re` and `subprocess`
+  assertions. Each probe invoked
+  `git -c core.excludesFile=/dev/null check-ignore --no-index -q -- <path>`;
+  expected return codes were 0 for ignored and 1 for trackable. No probe
+  files or real secrets were created. Inspected `.git/info/exclude` implicitly
+  through Git's effective result; global ignore rules were disabled.
+- Ignored probes (33): `.env`, `.env.local`, `.env.production`, `app/.env`,
+  `app/.env.test`, `secrets/password.txt`, `app/secrets/password.txt`,
+  `server.pem`, `server.key`, `.venv/bin/python`, `venv/bin/python`,
+  `env/bin/python`, `app/.venv/bin/python`,
+  `app/__pycache__/views.cpython-313.pyc`, `.pytest_cache/state`,
+  `.ruff_cache/state`, `.mypy_cache/state`, `.coverage`, `htmlcov/index.html`,
+  `build/output`, `dist/package.whl`, `sample.egg-info/PKG-INFO`,
+  `app/db.sqlite3`, `app/db.sqlite3-journal`, `app/db.sqlite3-wal`,
+  `app/db.sqlite3-shm`, `app/server.log`, `server.pid`,
+  `staticfiles/admin.css`, `media/upload.txt`, `backups/local.txt`,
+  `local.dump`, `local.sql.gz`.
+- Trackable probes (11): `.env.example`, `.env.production.example`,
+  `app/.env.example`, `app/.env.test.example`, `app/static/tasks/style.css`,
+  `app/tasks/migrations/0001_initial.py`, `app/templates/tasks/list.html`,
+  `app/requirements.txt`, `README.md`, `learning/tasks/TSK-002/TASK.md`,
+  `learning/tasks/TSK-002/workspace/.gitkeep`.
+- Credential audit used `git ls-files -z` for working files,
+  `git rev-list --all` for both reachable commits,
+  `git ls-tree -r <commit>` to enumerate unique blobs and
+  `git cat-file blob <oid>` to inspect their contents in memory. Patterns
+  covered private-key headers, GitHub/OpenAI/AWS token formats, quoted
+  password/secret/API-key/token assignments and authenticated HTTP/PostgreSQL
+  URLs. Output reported counts only, not file contents. Also asserted that
+  no tracked file was effectively ignored and that
+  `git rev-list --max-parents=0 HEAD` matched the initial commit above.
+  Observed exit 0:
+
+  ```text
+  PASS: 33 secret/environment/generated paths ignored; 11 example/source/handoff paths trackable
+  PASS: 19 tracked working files and 19 unique blobs across 2 reachable commits have no credential-pattern matches
+  PASS: no tracked files match repository ignore rules
+  PASS: existing initial commit verified
+  ```
+
+- Ran `git diff --check`: exit 0, no whitespace errors. Reviewed
+  `git diff --stat` and `git diff -- .gitignore README.md docs/TICKETS.md`
+  against the unchanged ticket. Only the intended ignore additions, README
+  guidance and TSK-002 lifecycle row were present at that stage.
+- Opened and verified all three official Git/GitHub documentation links used
+  in the README and learner task via the web tool on 2026-11-10.
+- Application tests: NOT RUN; this ticket changes Git hygiene/documentation,
+  and `app/` still contains only its placeholder. No future runtime behavior
+  is claimed.
+
+Limits: pattern scans and review cannot prove absence of every possible
+credential format. The audit covers tracked working files and locally
+reachable history, not deleted/unreachable objects, other clones or all
+remote branches. The GitHub lookup verifies the existing initial commit;
+pending TSK-002 changes remain local and uncommitted. No commits, branch
+changes, pushes, PRs, repository creation or publication were performed.
+No blockers or scope deviations remain.
+
+Learner handoff: exactly one new task at
+[`learning/tasks/TSK-002/TASK.md`](../learning/tasks/TSK-002/TASK.md), using a
+fictional weather notebook repository to practice selective tracking, local
+history and secret handling. Its workspace contains only an empty `.gitkeep`;
+no solution was generated. Learner status is READY, with no submission,
+review or completion claimed. Existing learner work was preserved.
+
+### 2026-11-10 — Final checks
+
+From the repository root, ran `python3 - <<'PY' ... PY` with `pathlib`, `re`
+and `subprocess` assertions over local Markdown targets, required learner
+headings, workspace contents, tracker rows compared with HEAD, the changed
+file inventory (`git diff --name-only` plus
+`git ls-files --others --exclude-standard`), application contents and HEAD.
+Observed exit 0:
+
+```text
+PASS: 12 local Markdown link targets exist
+PASS: one TSK-002 task, nine required sections, workspace contains only empty .gitkeep
+PASS: only TSK-002 tracker row changed; no active ticket remains
+PASS: exactly six intended changed/new files; production app, prior learner task and Git history unchanged
+```
+
+Manually reviewed the learner task against the nine-section contract: one
+local exercise, binary criteria, synthetic data, official references and
+validation/submission guidance, with no solution or future dependency.
+Ran `git diff --check`: exit 0, no output. `git status --short` showed only
+the four modified root/tracking files and the new TSK-002 learner directory.
+TSK-002 production is DONE and learner is READY; no subsequent ticket started.

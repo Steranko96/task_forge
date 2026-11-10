@@ -140,3 +140,47 @@ be added when the corresponding tickets provide a runnable application.
 | `docs/operations/` | Future operations runbook |
 | `docs/reference/` | Read-only historical sources |
 | `learning/tasks/` | One independent task per verified production ticket |
+
+## Version control and local files
+
+The existing Git repository uses `main` and the GitHub remote
+[`Steranko96/task_forge`](https://github.com/Steranko96/task_forge).
+Its initial commit is `ba8fd3a` (`first commit`). Reuse this repository and
+history; a fresh checkout should be cloned rather than initialized again.
+
+For an explicitly requested ticket, use a focused branch such as
+`codex/tsk-002-repository-hygiene`. Before editing, inspect `git status --short`
+and preserve unrelated changes. Keep each commit limited to the requested
+ticket and describe the result, for example
+`TSK-002: document repository hygiene`. Before an authorized commit:
+
+1. Run the ticket's relevant checks and `git diff --check`.
+2. Inspect `git diff` and `git status --short`, including untracked files.
+3. Stage intended paths explicitly with `git add <path> ...`.
+4. Review `git diff --cached --stat` and `git diff --cached` for scope and secrets.
+5. Commit only after that review. Push or open a PR only when requested.
+
+These are workflow instructions, not a record that those actions occurred.
+Codex creates commits, pushes, PRs or publishes only with authorization for
+the current ticket. Verification and learner handoff do not require committing
+the pending changes.
+
+`.gitignore` excludes local `.env` variants, private key files (`*.pem`,
+`*.key`), `secrets/`, virtual environments (`.venv/`, `venv/`, `env/`), Python
+caches/build output, collected static files (`staticfiles/`), uploaded media,
+local databases and their journals, logs and backups. Authored static source
+and Django migrations belong in Git. `.env.example` and `.env.*.example`
+remain trackable, but must contain placeholders only. Environment variable
+names and sample settings will be defined in TSK-004.
+
+Use `git check-ignore -v --no-index <path>` to identify a matching rule;
+`git ls-files` shows what is already tracked. Ignore rules do not remove
+previously tracked data and cannot recognize arbitrary credentials in source
+files. Never put tokens in remote URLs or commit real credentials, sessions,
+data or backups. If a real secret enters Git, stop sharing it, revoke/rotate
+the credential, and coordinate any cleanup; adding an ignore rule alone
+does not remove it from history.
+
+References: [Git ignore rules](https://git-scm.com/docs/gitignore),
+[reviewing and recording changes](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository),
+and [GitHub sensitive-data response](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
