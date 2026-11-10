@@ -18,7 +18,7 @@ Optional tickets remain NOT_STARTED unless explicitly requested.
 
 | Ticket | Title | Production | Learner | Evidence |
 | --- | --- | --- | --- | --- |
-| TSK-001 | Record architecture and scope decisions | NOT_STARTED | NOT_GENERATED | — |
+| TSK-001 | Record architecture and scope decisions | DONE | READY | [TSK-001](PROGRESS.md#tsk-001) |
 | TSK-002 | Initialize repository and ignore rules | NOT_STARTED | NOT_GENERATED | — |
 | TSK-003 | Establish Python and Django environment | NOT_STARTED | NOT_GENERATED | — |
 | TSK-004 | Configure environment-dependent settings | NOT_STARTED | NOT_GENERATED | — |
