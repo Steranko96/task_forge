@@ -1,0 +1,6 @@
+# Runtime: Python 3.14.x (see .python-version and README.md).
+# Direct dependency
+Django==5.2.19
+# Django runtime dependencies, pinned for repeatable macOS/Linux installs
+asgiref==3.13.0
+sqlparse==0.6.1

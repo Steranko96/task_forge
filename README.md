@@ -2,8 +2,8 @@
 
 TaskForge will be a multi-user task manager built with Python, Django,
 server-rendered HTML/CSS and PostgreSQL. This README records the architecture
-and scope decisions for TSK-001. The repository is still a documentation and
-folder skeleton: there is no runnable application, database or deployment yet.
+and scope decisions for TSK-001. TSK-003 provides a runnable local Django
+bootstrap; task features, PostgreSQL and deployment are still pending.
 See [ticket status](docs/TICKETS.md) and [verification evidence](docs/PROGRESS.md).
 
 ## Components and decisions
@@ -115,8 +115,8 @@ including CI, HTTPS, logs, monitoring, backup and demonstrated restoration.
 
 ## Official references
 
-The backlog's Django 5.2 documentation provides the design reference; runtime
-compatibility and dependency pins will be established in TSK-003.
+The runtime uses Django 5.2.19 and Python 3.14.x. The backlog’s Django 5.2
+documentation matches this implementation.
 
 - [Django overview: models, routing, views and templates](https://docs.djangoproject.com/en/5.2/intro/overview/)
 - [Django security: escaping, CSRF and deployment protections](https://docs.djangoproject.com/en/5.2/topics/security/)
@@ -128,18 +128,68 @@ Read [PROJECT.md](PROJECT.md), [BACKLOG.md](BACKLOG.md) and
 Codex implements exactly one explicitly requested production ticket, verifies
 it, creates one independent learner exercise and stops. Practice follows
 [learning/README.md](learning/README.md); learner completion does not gate a
-new explicit production request. Installation and runtime test commands will
-be added when the corresponding tickets provide a runnable application.
+new explicit production request. Local bootstrap commands are below.
 
 | Path | Purpose |
 | --- | --- |
-| `app/` | Future production Django application; currently a placeholder |
+| `app/` | Django project (`config`) and registered task app skeleton (`tasks`) |
 | `docs/TICKETS.md` | Separate production and learner status |
 | `docs/PROGRESS.md` | Observed verification evidence |
 | `docs/architecture/` | Space for future detailed decisions; current architecture is above |
 | `docs/operations/` | Future operations runbook |
 | `docs/reference/` | Read-only historical sources |
 | `learning/tasks/` | One independent task per verified production ticket |
+
+## Local Python and Django setup
+
+Supported bootstrap environment: **Python 3.14.x on macOS/Linux**, with `venv`
+and pip available. `.python-version` selects the 3.14 series for compatible
+version managers; it does not install Python. Use a maintained patch release
+in that series. Django 5.2 supports Python 3.14 from 5.2.8 onward; this project
+pins Django 5.2.19 and its current runtime dependencies in `requirements.txt`.
+No PostgreSQL driver or deployment packages are needed for this ticket.
+
+From a clean checkout, run these commands at the repository root:
+
+```sh
+python3.14 --version
+python3.14 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip check
+python -m django --version
+python app/manage.py check
+python app/manage.py migrate
+python app/manage.py runserver 127.0.0.1:8000
+```
+
+The Django version should be `5.2.19`, pip should report no broken requirements,
+and Django's system check should report no issues. Open
+[the local server](http://127.0.0.1:8000/) to see Django's default installation
+success page (HTTP 200). Stop it with Ctrl-C; use `deactivate` to leave the
+virtual environment. Activation is optional if you invoke `.venv/bin/python`
+explicitly. Recreate the environment and reinstall from the requirements file
+on each new checkout; never copy or commit a virtual environment.
+
+`app/manage.py` is the command entry point; `app/config/` holds project settings,
+URLs and WSGI/ASGI entry points. `app/tasks/` is registered but has no task
+models or views yet. The generated admin route remains; no accounts are
+provisioned. The root page is Django's built-in debug welcome screen, not a
+health endpoint. No application tests exist yet; routing tests arrive with
+TSK-005.
+
+This bootstrap is **local development only**: DEBUG is enabled and a new secret
+key is generated in memory for each process, so signatures/sessions do not
+survive a restart. No stored key or production credential is supplied.
+Environment-dependent settings belong to TSK-004. SQLite at `app/db.sqlite3`
+is temporary disposable storage for Django's built-in migrations; PostgreSQL
+arrives in TSK-006. `.venv/`, caches and SQLite files are ignored. Run migrations
+before startup to avoid Django's unapplied-migrations warning. Do not expose
+this development server publicly or deploy these settings.
+
+References: [Python 3.14 virtual environments](https://docs.python.org/3.14/library/venv.html),
+[Django 5.2 Python compatibility](https://docs.djangoproject.com/en/5.2/faq/install/),
+and [Django project/app setup and development server](https://docs.djangoproject.com/en/5.2/intro/tutorial01/).
 
 ## Version control and local files
 

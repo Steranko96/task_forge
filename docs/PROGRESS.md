@@ -240,3 +240,142 @@ validation/submission guidance, with no solution or future dependency.
 Ran `git diff --check`: exit 0, no output. `git status --short` showed only
 the four modified root/tracking files and the new TSK-002 learner directory.
 TSK-002 production is DONE and learner is READY; no subsequent ticket started.
+
+## TSK-003
+
+### 2026-11-10 — Production verification and learner handoff
+
+- Request: implement TSK-003 only. Read the root agreement, `PROJECT.md`,
+  backlog requirements/dependency/milestone rules, tracker, earlier production
+  evidence and `learning/README.md`. File inventory and `find . -name AGENTS.md
+  -not -path './.git/*'` found no nested agreement before implementation.
+- Starting state: `git status --short` was empty. TSK-002 was DONE with its
+  ignore rules, README guidance, evidence and learner task present. Git history
+  contained `bde80ae TSK-002: base ticket commit`. No other ticket was active.
+  TSK-003 is within Foundations; no preceding milestone exit gate blocks it.
+- Lifecycle: marked only TSK-003 IN_PROGRESS before implementation. Verified
+  production before creating the one learner task, then marked DONE/READY.
+- Changed files: `.python-version`, `requirements.txt`, `README.md`,
+  `app/manage.py`, `app/config/{__init__,settings,urls,asgi,wsgi}.py`,
+  `app/tasks/{__init__,admin,apps,models,tests,views}.py`,
+  `app/tasks/migrations/__init__.py`, removal of `app/.gitkeep`, the tracker,
+  this log, and `learning/tasks/TSK-003/{TASK.md,workspace/.gitkeep}`.
+- Decisions: use Python 3.14.x, Django 5.2.19 and its two pinned macOS/Linux
+  runtime dependencies (asgiref 3.13.0, sqlparse 0.6.1). `.python-version`
+  records the supported series; the README explains the interpreter prerequisite.
+  Use Django's generated project and empty registered `tasks` app under `app/`.
+  Preserve built-in auth, CSRF and escaping defaults. Replace the generated
+  stored development key with a fresh in-memory key per process; no stored
+  credential is delivered. Restarted signatures/sessions are intentionally
+  temporary until environment-dependent settings in TSK-004.
+- SQLite is disposable bootstrap storage only; no task model, health route,
+  accounts, PostgreSQL driver or deployment stack was implemented. Foundations
+  and the project remain incomplete.
+
+Acceptance and requirement evidence:
+
+| Criterion / requirement | Observed evidence | Result |
+| --- | --- | --- |
+| Pin Python compatibility and direct dependencies | `.python-version` contains `3.14`; README specifies Python 3.14.x on macOS/Linux. Requirements exactly pin Django 5.2.19 plus its resolved runtime dependencies. Fresh install and `pip freeze` matched all three pins. | PASS |
+| Create Django project/app | `startproject config app` and `startapp tasks` produced management, settings, URL, WSGI/ASGI and app skeleton files. `tasks.apps.TasksConfig` is in INSTALLED_APPS; Django checks and migration dry-run passed. | PASS |
+| Record installation/run commands | README provides interpreter/venv creation, installation, dependency checks, migrations, loopback runserver, browser URL and shutdown commands, plus development limitations and generated-file guidance. | PASS |
+| Clean checkout can install dependencies and start development server | Copied all available tracked and nonignored untracked source paths to a new temporary directory, excluding Git metadata, virtual environments, caches and SQLite. Created a fresh venv, downloaded pinned dependencies without pip cache, migrated new SQLite and started real runserver. GET `/` returned HTTP 200 and Django installation success content. | PASS |
+
+Checks and environment (actual execution):
+
+- Shell work ran from `/Users/tategraham/workspace/tate/taskforge-starter`
+  on macOS/zsh. Initial `python3 --version` was 3.14.7. The available
+  Homebrew `python3.12 --version` was 3.12.14, but
+  `python3.12 -m pip index versions Django` failed with a pyexpat/libexpat
+  missing-symbol ImportError. Switched to the working Python 3.14.7 rather
+  than altering the host installation. Django's official 5.2 compatibility
+  page confirms 3.14 support from 5.2.8 onward.
+- Initial sandboxed `python3 -m pip index versions Django`, the first
+  `.venv/bin/python -m pip install --no-cache-dir 'Django>=5.2.8,<5.3'`,
+  and first temporary-copy install failed because sandbox DNS could not
+  resolve PyPI. Retried installation and clean-copy verification with approved
+  network access; both succeeded. These were environment access failures,
+  not successful dependency checks. pip also reported its unwritable user
+  cache; installs used `--no-cache-dir`.
+- Ran `python3 -m venv .venv`, then the successful install command above.
+  It resolved Django 5.2.19, asgiref 3.13.0 and sqlparse 0.6.1. Ran
+  `.venv/bin/python -m django startproject config app`, then from `app/`,
+  `../.venv/bin/python manage.py startapp tasks`; both exited 0.
+- After settings/README/requirements edits, root checks:
+  `.venv/bin/python -m pip check` → no broken requirements;
+  `.venv/bin/python app/manage.py check` → no issues;
+  `.venv/bin/python app/manage.py makemigrations --check --dry-run` → no changes;
+  `git diff --check` → exit 0 with no output.
+- Ran `python3 /private/tmp/taskforge_tsk003_verify.py` with network access.
+  The temporary verification script copied source via
+  `git ls-files --cached --others --exclude-standard -z`, skipped removed
+  files, and asserted there was no copied `.venv` or SQLite database. Since
+  changes are intentionally uncommitted, this was a clean source snapshot of
+  the pending implementation, not a clone of an already published commit.
+  Successful copy working directory:
+  `/private/var/folders/5_/kkhp61cd4z516r63rwf760pr0000gn/T/taskforge-tsk003-tozd6pvk/checkout`.
+  From there it ran these commands using the fresh `.venv/bin/python`:
+
+  ```text
+  python3 -m venv .venv
+  .venv/bin/python -m pip install --no-cache-dir -r requirements.txt
+  .venv/bin/python -m pip check
+  .venv/bin/python -m pip freeze
+  .venv/bin/python -m django --version
+  .venv/bin/python app/manage.py check
+  .venv/bin/python app/manage.py makemigrations --check --dry-run
+  .venv/bin/python app/manage.py migrate --noinput
+  .venv/bin/python -u app/manage.py runserver 127.0.0.1:8000 --noreload
+  ```
+
+  Observed all commands succeed; version 5.2.19, exact three dependency pins,
+  no broken requirements, no system-check issues, no model changes, and all
+  18 built-in migrations applied. The script used `urllib.request.urlopen`
+  against the real loopback server, asserted HTTP 200 and
+  `The install worked successfully!` in the response, then terminated and
+  waited for the server. Its log recorded `GET / HTTP/1.1` 200. No production
+  database or credentials were used. The script exited 0.
+- Consulted and verified official Python 3.14 venv documentation, Django 5.2
+  installation/compatibility, tutorial part 1, and Django 5.2.19 release notes
+  via the web tool. Learner references use those verified documentation pages.
+- No custom application test suite was run: generated `tests.py` is empty;
+  this ticket's runtime acceptance was verified by fresh installation,
+  system/migration checks and a real HTTP request. Health and routing tests
+  belong to TSK-005. No deployment/production checks were claimed.
+
+Limitations: verified on macOS with Python 3.14.7; Linux is documented but
+was not executed here. Windows is outside the documented bootstrap target.
+Dependency versions will need deliberate future updates. These are development
+settings with temporary keys and SQLite, not production settings. No remaining
+blocker or scope deviation; no commits, pushes, PRs or publication performed.
+
+Learner handoff: exactly one new independent museum-catalogue bootstrap task at
+[`learning/tasks/TSK-003/TASK.md`](../learning/tasks/TSK-003/TASK.md).
+Its workspace contains only empty `.gitkeep`; no solution was provided.
+Existing learner tasks/workspaces were preserved. Learner is READY, not reviewed
+or COMPLETE. No subsequent production ticket was started.
+
+### 2026-11-10 — Final handoff checks
+
+From the repository root, ran
+`.venv/bin/python app/manage.py shell -c "from django.apps import apps; assert apps.is_installed('tasks'); print('PASS: tasks app registered')"`:
+exit 0, app registration confirmed. Ran `python3 - <<'PY' ... PY` with
+`pathlib`, `re` and `subprocess` assertions over tracker rows compared with
+HEAD, all nine required learner headings, task count/workspace contents,
+existing learner diffs, local Markdown targets, Python series and the combined
+tracked/untracked change inventory. Observed exit 0:
+
+```text
+PASS: only TSK-003 tracker row changed; DONE/READY; no active production ticket
+PASS: one new task with all nine sections; empty workspace; existing learner work unchanged
+PASS: README and learner task local link targets exist
+PASS: changes limited to TSK-003; requirements and agreements unchanged; generated runtime files excluded
+```
+
+Reviewed generated project/app files and the README/tracker diff. Ran
+`git diff --check`: exit 0, no whitespace errors. `git status --short` showed
+only the intended README/tracking changes, removed app placeholder and new
+runtime source/version/requirements and TSK-003 learner files. The learner
+exercise has one independent bootstrap objective, binary criteria, local setup,
+official references and submission guidance without a solution. All TSK-003
+production and handoff requirements are met; no later ticket started.
