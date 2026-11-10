@@ -1,0 +1,38 @@
+# Local secrets (keep safe example files trackable)
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+secrets/
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
+# Generated runtime data and backups
+*.sqlite3
+*.sqlite3-journal
+*.log
+*.pid
+staticfiles/
+media/
+backups/
+*.dump
+*.sql.gz
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*~
