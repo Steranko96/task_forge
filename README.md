@@ -147,7 +147,7 @@ and pip available. `.python-version` selects the 3.14 series for compatible
 version managers; it does not install Python. Use a maintained patch release
 in that series. Django 5.2 supports Python 3.14 from 5.2.8 onward; this project
 pins Django 5.2.19 and its current runtime dependencies in `requirements.txt`.
-No PostgreSQL driver or deployment packages are needed for this ticket.
+No PostgreSQL driver or deployment packages are installed yet (TSK-006 and later).
 
 From a clean checkout, run these commands at the repository root:
 
@@ -158,6 +158,13 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 python -m pip check
 python -m django --version
+cp .env.example .env
+# Generate a private local key and write it into the blank DJANGO_SECRET_KEY in .env:
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+# Quote the key with single quotes in .env, then export the file:
+set -a
+source .env
+set +a
 python app/manage.py check
 python app/manage.py migrate
 python app/manage.py runserver 127.0.0.1:8000
@@ -175,17 +182,63 @@ on each new checkout; never copy or commit a virtual environment.
 URLs and WSGI/ASGI entry points. `app/tasks/` is registered but has no task
 models or views yet. The generated admin route remains; no accounts are
 provisioned. The root page is Django's built-in debug welcome screen, not a
-health endpoint. No application tests exist yet; routing tests arrive with
-TSK-005.
+health endpoint. Settings regression tests are available below; routing tests
+arrive with TSK-005.
 
-This bootstrap is **local development only**: DEBUG is enabled and a new secret
-key is generated in memory for each process, so signatures/sessions do not
-survive a restart. No stored key or production credential is supplied.
-Environment-dependent settings belong to TSK-004. SQLite at `app/db.sqlite3`
-is temporary disposable storage for Django's built-in migrations; PostgreSQL
-arrives in TSK-006. `.venv/`, caches and SQLite files are ignored. Run migrations
-before startup to avoid Django's unapplied-migrations warning. Do not expose
-this development server publicly or deploy these settings.
+This bootstrap is **local development only**. SQLite at `app/db.sqlite3` is
+still temporary disposable storage; PostgreSQL connection verification arrives
+in TSK-006. `.venv/`, `.env`, caches and SQLite files are ignored. Run migrations
+before startup. Do not expose the development server publicly.
+
+## Environment configuration
+
+Settings read the process environment using Python's standard library; no new
+dependency or automatic `.env` loader is used. The shell commands above export
+your private `.env` for the current terminal. Source only a local file you trust:
+`source` executes shell code. Keep secret values quoted, never paste them into
+tracked files or validation evidence, and reuse your local key across restarts.
+The committed example files contain empty secrets and illustrative values only;
+they intentionally cannot start Django until populated. Existing exported values
+persist in a terminal: open a fresh shell when switching configurations.
+
+| Variable | Behavior |
+| --- | --- |
+| `DJANGO_ENV` | `production` by default; only `development` or `production` accepted. Development must be explicit. |
+| `DJANGO_SECRET_KEY` | Required and nonblank in every mode; no stored or randomly generated fallback. Supply a private, large random value. |
+| `DJANGO_DEBUG` | Defaults to `false`; accepts only `true`/`false`, ignoring case and surrounding whitespace. `true` is rejected in production. |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated hostnames/IPs, trimmed with empty entries removed. Production requires a nonempty list without `*`. Use hosts without scheme or port; Django enforces host matching on requests. |
+| `DB_ENGINE` | `postgresql` by default in production, `sqlite3` in development. SQLite is rejected in production. |
+| `DB_NAME` | Required for PostgreSQL; SQLite defaults to `app/db.sqlite3` when omitted/blank. A relative SQLite path is relative to the process working directory. |
+| `DB_USER`, `DB_PASSWORD`, `DB_HOST` | Required and nonblank for PostgreSQL in either mode; ignored for SQLite. |
+| `DB_PORT` | PostgreSQL port; defaults to `5432`, must be an integer from 1 to 65535. Ignored for SQLite. |
+
+Use [.env.example](.env.example) for local setup and
+[.env.production.example](.env.production.example) as a production variable
+inventory. Supply actual production values privately via the deployment
+environment. An unset/blank secret raises `ImproperlyConfigured` naming the
+variable without printing its value. Typoed modes/debug values fail instead of
+silently weakening settings. Django's built-in CSRF/authentication middleware
+and template escaping remain enabled.
+
+TSK-004 prepares the PostgreSQL settings dictionary only. The driver, database
+service, migrations against PostgreSQL and persistence verification belong to
+TSK-006. These templates do not constitute a deployable production service;
+HTTPS, cookies, proxy configuration and deployment checks remain later tickets.
+
+Run configuration tests from the repository root without loading your `.env`:
+
+```sh
+.venv/bin/python -m unittest discover -s app/config -p 'test_*.py' -v
+```
+
+Tests isolate environment values and use synthetic credentials, never a database
+connection. With your local development environment exported, also run
+`python app/manage.py check` and `(cd app && python manage.py test)`
+(the app directory is the test discovery root).
+
+Configuration references: [Django 5.2 deployment checklist](https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/),
+[Django 5.2 database settings](https://docs.djangoproject.com/en/5.2/ref/settings/#databases),
+and [Twelve-Factor configuration](https://12factor.net/config).
 
 References: [Python 3.14 virtual environments](https://docs.python.org/3.14/library/venv.html),
 [Django 5.2 Python compatibility](https://docs.djangoproject.com/en/5.2/faq/install/),
@@ -220,8 +273,8 @@ the pending changes.
 caches/build output, collected static files (`staticfiles/`), uploaded media,
 local databases and their journals, logs and backups. Authored static source
 and Django migrations belong in Git. `.env.example` and `.env.*.example`
-remain trackable, but must contain placeholders only. Environment variable
-names and sample settings will be defined in TSK-004.
+remain trackable, but must contain placeholders only. See the environment
+configuration section above for variable names and safe example templates.
 
 Use `git check-ignore -v --no-index <path>` to identify a matching rule;
 `git ls-files` shows what is already tracked. Ignore rules do not remove

@@ -21,7 +21,7 @@ Optional tickets remain NOT_STARTED unless explicitly requested.
 | TSK-001 | Record architecture and scope decisions | DONE | READY | [TSK-001](PROGRESS.md#tsk-001) |
 | TSK-002 | Initialize repository and ignore rules | DONE | READY | [TSK-002](PROGRESS.md#tsk-002) |
 | TSK-003 | Establish Python and Django environment | DONE | READY | [TSK-003](PROGRESS.md#tsk-003) |
-| TSK-004 | Configure environment-dependent settings | NOT_STARTED | NOT_GENERATED | — |
+| TSK-004 | Configure environment-dependent settings | DONE | READY | [TSK-004](PROGRESS.md#tsk-004) |
 | TSK-005 | Implement health endpoint and smoke check | NOT_STARTED | NOT_GENERATED | — |
 | TSK-006 | Connect PostgreSQL in development | NOT_STARTED | NOT_GENERATED | — |
 | TSK-007 | Design Task schema and ownership | NOT_STARTED | NOT_GENERATED | — |

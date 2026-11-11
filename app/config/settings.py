@@ -10,25 +10,45 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
-from django.core.management.utils import get_random_secret_key
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+def required_env(name):
+    value = os.environ.get(name, '')
+    if not value.strip():
+        raise ImproperlyConfigured(f'{name} must be set and nonblank.')
+    return value
 
-# Local bootstrap only: a fresh key per process, never a stored credential.
-# Sessions/signatures will not survive restarts; TSK-004 supplies environment settings.
-SECRET_KEY = get_random_secret_key()
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Omitted mode is production: local conveniences require explicit opt-in.
+ENVIRONMENT = os.environ.get('DJANGO_ENV', 'production').strip().lower()
+if ENVIRONMENT not in {'development', 'production'}:
+    raise ImproperlyConfigured('DJANGO_ENV must be development or production.')
 
-ALLOWED_HOSTS = []
+SECRET_KEY = required_env('DJANGO_SECRET_KEY')
+
+debug_value = os.environ.get('DJANGO_DEBUG', 'false').strip().lower()
+if debug_value not in {'true', 'false'}:
+    raise ImproperlyConfigured('DJANGO_DEBUG must be true or false.')
+DEBUG = debug_value == 'true'
+if ENVIRONMENT == 'production' and DEBUG:
+    raise ImproperlyConfigured('DJANGO_DEBUG must be false in production.')
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
+if ENVIRONMENT == 'production' and (not ALLOWED_HOSTS or '*' in ALLOWED_HOSTS):
+    raise ImproperlyConfigured(
+        'DJANGO_ALLOWED_HOSTS must specify hosts without * in production.'
+    )
 
 
 # Application definition
@@ -76,12 +96,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
+db_engine = os.environ.get(
+    'DB_ENGINE', 'postgresql' if ENVIRONMENT == 'production' else 'sqlite3'
+)
+if db_engine == 'sqlite3' and ENVIRONMENT == 'development':
+    DATABASES = {'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+        'NAME': os.environ.get('DB_NAME') or BASE_DIR / 'db.sqlite3',
+    }}
+elif db_engine == 'postgresql':
+    DATABASES = {'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': required_env('DB_NAME'),
+        'USER': required_env('DB_USER'),
+        'PASSWORD': required_env('DB_PASSWORD'),
+        'HOST': required_env('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }}
+    try:
+        port = int(DATABASES['default']['PORT'])
+        if not 1 <= port <= 65535:
+            raise ValueError
+    except ValueError:
+        raise ImproperlyConfigured('DB_PORT must be an integer from 1 to 65535.') from None
+else:
+    raise ImproperlyConfigured(
+        'DB_ENGINE must be postgresql (or sqlite3 in development only).'
+    )
 
 
 # Password validation

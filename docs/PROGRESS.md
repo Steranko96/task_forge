@@ -379,3 +379,125 @@ runtime source/version/requirements and TSK-003 learner files. The learner
 exercise has one independent bootstrap objective, binary criteria, local setup,
 official references and submission guidance without a solution. All TSK-003
 production and handoff requirements are met; no later ticket started.
+
+## TSK-004
+
+### 2026-11-10 — Production verification and learner handoff
+
+- Request/scope: implement TSK-004 only, separating the key, database,
+  debug and allowed-host configuration from source. Read `AGENTS.md`,
+  `PROJECT.md`, the requested backlog block and dependency/milestone rules,
+  tracker, TSK-003 production evidence, relevant source and `learning/README.md`.
+  `find . -name AGENTS.md -not -path './.git/*' -not -path './.venv/*'`
+  found only the root agreement. Initial `git status --short` was empty.
+- Dependencies: TSK-003 DONE/READY, with actual pinned requirements,
+  Python selector, runnable project/app and prior verification evidence present.
+  Existing `.venv` reports Python 3.14.7 and Django 5.2.19. No active ticket
+  or earlier milestone gate blocks Foundations work. Learner completion
+  was not required. TSK-005 and all later tickets remain untouched.
+- Lifecycle: changed only TSK-004 to IN_PROGRESS before implementation;
+  verified production before creating the one learner task; then DONE/READY.
+- Changed files: `app/config/settings.py`, `app/config/test_settings.py`,
+  `.env.example`, `.env.production.example`, `README.md`, `docs/TICKETS.md`,
+  this log, `learning/tasks/TSK-004/TASK.md` and empty `workspace/.gitkeep`.
+- Decisions: use the standard-library process environment, no dotenv package
+  or implicit file loading. Require a stable externally supplied key in every
+  mode. Default to production with DEBUG false; development conveniences
+  require explicit mode selection. Reject malformed modes/boolean values and
+  production DEBUG true. Require explicit non-wildcard production hosts.
+  SQLite remains a development-only bootstrap. Map PostgreSQL connection
+  fields now without installing a driver, connecting or implementing TSK-006.
+  No generated key fallback, credentials, real `.env` or deployment added.
+- Consulted official Django 5.2 deployment checklist and database settings,
+  Twelve-Factor configuration, Python 3.14 `os.environ` and unittest docs via
+  the web tool. Links in README/task point to the verified official pages.
+
+Acceptance and requirement evidence:
+
+| Criterion / requirement | Observed evidence | Result |
+| --- | --- | --- |
+| Read key, database connection, debug and allowed hosts from environment | 13 automated tests verify environment key mapping, PostgreSQL name/user/password/host/port mapping, default and custom ports, SQLite development default/override, boolean parsing and host list parsing. Django HttpRequest accepts the configured host and rejects an untrusted host. | PASS |
+| Missing production secrets fail clearly | Tests cover missing, empty and whitespace-only required fields, including key/password, and assert errors name variables without echoing either synthetic secret. Separate real `manage.py check` subprocesses exit 1 with `ImproperlyConfigured` for missing DJANGO_SECRET_KEY and missing DB_PASSWORD. | PASS |
+| DEBUG disabled in production configuration | Both explicit and omitted production mode reject debug true. Omitted debug loads as False. Production example explicitly sets false. Typoed modes/boolean values fail rather than enabling development. | PASS |
+| Safe sample variables, placeholders only | Reviewed both templates and parsed their assignments: key/password empty in both, production name/user are `replace_me`, domains end in reserved `.example.com`. Development contains only local hosts, SQLite selector and blank connection values. | PASS |
+| No production secrets in repository | Changed settings read secrets externally; examples have no secret values; test values are explicitly synthetic. `git ls-files -- .env .env.production` returns nothing; example files are trackable. Reviewed changed source/docs and new templates/tests; no real credential supplied or copied. | PASS within the changed-file review scope |
+
+Actual checks and environment:
+
+All shell commands were invoked from
+`/Users/tategraham/workspace/tate/taskforge-starter` on macOS/zsh unless noted.
+Used the existing `.venv` with Python 3.14.7 and Django 5.2.19; no install,
+service access, real secrets or production database. Configuration tests clear
+ambient environment variables per load and use synthetic inputs only.
+
+- `.venv/bin/python -m unittest discover -s app/config -p 'test_*.py' -v`:
+  first run had 12 passing tests and one host-test error because Django's
+  default settings were not initialized by the standalone runner. An initial
+  harness repair exposed unittest discovery inspecting an unconfigured lazy
+  settings import. Moved the import into class setup and initialize defaults
+  only when unconfigured. Final run: exit 0, 13 tests passed. These failures
+  were test-harness failures; no acceptance claim was made from them.
+- `.venv/bin/python /private/tmp/taskforge_tsk004_verify.py`: exit 0. This
+  temporary verification script used `subprocess.run` with explicit environment
+  dictionaries (no inherited credentials) and absolute venv Python. Child
+  working directory was the repository's `app/`. Development inputs were
+  `DJANGO_ENV=development`, a synthetic key, `DJANGO_DEBUG=true`, local
+  allowed hosts, and `DB_NAME=:memory:`. It ran:
+
+  ```text
+  <root>/.venv/bin/python manage.py check
+    exit 0: System check identified no issues (0 silenced).
+  <root>/.venv/bin/python manage.py makemigrations --check --dry-run
+    exit 0: No changes detected
+  <root>/.venv/bin/python manage.py test -v 2
+    exit 0: Found 13 tests; all passed; no system-check issues;
+    skipped setup of unused database default.
+  ```
+
+  It then ran `manage.py check` with an empty environment: expected exit 1,
+  ending with `ImproperlyConfigured: DJANGO_SECRET_KEY must be set and nonblank.`
+  A second production-default subprocess supplied synthetic key, allowed host,
+  DB name/user/host but omitted the password: expected exit 1 ending with
+  `ImproperlyConfigured: DB_PASSWORD must be set and nonblank.` The script
+  asserted the synthetic key was absent from stderr in both cases.
+- The same verification script parsed both example files and asserted empty
+  key/password fields and production placeholders. For each template,
+  `git -c core.excludesFile=/dev/null check-ignore --no-index -q <path>`
+  returned 1 (trackable). `git ls-files -- .env .env.production` returned no
+  paths. These checks plus manual diff review support the sample/secret scope.
+- `git diff --check`: exit 0, no whitespace errors. Reviewed
+  `git diff -- app/config/settings.py README.md docs/TICKETS.md` and the new
+  templates/test source against the ticket. README records setup/export,
+  all variables/defaults, tests, and production limitations.
+
+Limits: PostgreSQL mapping and failure handling are verified without a driver
+or live DB; PostgreSQL checks/migrations/persistence remain TSK-006. No live
+production deployment or `check --deploy` pass is claimed; HTTPS/proxy/cookie
+hardening and deployment checks remain later tickets. No server route or
+health endpoint was added. Verification was on macOS, not Linux. No blocker
+or scope deviation remains; no commits, pushes, PRs or publication performed.
+
+Learner handoff: exactly one new task at
+[`learning/tasks/TSK-004/TASK.md`](../learning/tasks/TSK-004/TASK.md),
+a separate offline seed-library configuration validator using Python's standard
+library. The nine-section exercise has binary criteria, official references,
+local synthetic inputs and validation/submission guidance. Its workspace
+contains only empty `.gitkeep`, with no solution. Existing learner work was
+preserved. Learner status READY; no learner completion or review claimed.
+
+### 2026-11-10 — Final handoff checks
+
+Ran `python3 - <<'PY' ... PY` from the repository root using pathlib, regex
+and Git subprocess assertions. Exit 0, observed:
+
+```text
+PASS: only TSK-004 tracker row changed; DONE/READY; no active production ticket
+PASS: one learner task, nine required sections, empty workspace, prior learner files unchanged
+PASS: README/task local link targets exist
+PASS: exactly nine intended changed/new files; requirements, agreements and other production files unchanged
+```
+
+Manually reviewed the single independent exercise against the learning contract;
+no solution or future dependency was included. `git diff --check` exited 0.
+`git status --short` showed only the nine intended changed/new files above.
+TSK-004 is DONE, its learner task is READY, and no other ticket was started.
